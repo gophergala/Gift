@@ -11,6 +11,7 @@ import (
 
 func (gs *GiftServer) Handler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Request start")
+	gs.source.Setup(gs.width, gs.height)
 	w.Header().Set("Content-Type", "image/gif")
 
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
@@ -26,19 +27,21 @@ func (gs *GiftServer) Handler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("Error looking up ip: %+v", err)
 	}
+	gs.source.Geo(record)
 
 	g := gif.GIF{}
 	g.Image = append(g.Image, image.NewPaletted(image.Rect(0, 0, gs.width, gs.height), palette.Plan9))
 	g.Delay = append(g.Delay, 100)
-	gs.source.Setup(gs.width, gs.height)
+	g.LoopCount = 0
 
 	images := make(chan *image.Paletted)
 
-	go gs.source.Pipe(images, record)
+	go gs.source.Pipe(images)
 
 	err = EncodeAll(w, &g, images)
 	if err != nil {
 		log.Printf("Err: %+v", err)
 	}
 	log.Printf("Request complete")
+
 }

@@ -1,23 +1,16 @@
 package gift
 
 import (
-	"code.google.com/p/freetype-go/freetype"
-	"code.google.com/p/freetype-go/freetype/truetype"
 	"github.com/oschwald/geoip2-golang"
 
 	"image"
 	"log"
 )
 
-type GiftImageCounter struct {
-	font          *truetype.Font
-	c             *freetype.Context
-	width, height int
-}
-
 type GiftImageSource interface {
 	Setup(width, height int)
-	Pipe(images chan *image.Paletted, record *geoip2.City)
+	Geo(record *geoip2.City)
+	Pipe(images chan *image.Paletted)
 }
 
 type GiftServer struct {

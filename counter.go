@@ -2,6 +2,7 @@ package gift
 
 import (
 	"code.google.com/p/freetype-go/freetype"
+	"code.google.com/p/freetype-go/freetype/truetype"
 	"github.com/oschwald/geoip2-golang"
 
 	"fmt"
@@ -12,7 +13,18 @@ import (
 	"time"
 )
 
-func (g *GiftImageCounter) Pipe(images chan *image.Paletted, record *geoip2.City) {
+type GiftImageCounter struct {
+	font          *truetype.Font
+	c             *freetype.Context
+	city          *geoip2.City
+	width, height int
+}
+
+func (g *GiftImageCounter) Geo(record *geoip2.City) {
+	g.city = record
+}
+
+func (g *GiftImageCounter) Pipe(images chan *image.Paletted) {
 	log.Printf("About to send GiftImageCounter")
 	for i := 0; i < 10; i++ {
 		img := image.NewPaletted(image.Rect(0, 0, g.width, g.height), palette.Plan9)

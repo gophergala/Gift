@@ -9,8 +9,11 @@ import (
 
 func main() {
 	log.Printf("Starting GIFT server")
-	giftServer := gift.NewGiftServer(640, 480, &gift.GiftImageCounter{})
+	counterGiftServer := gift.NewGiftServer(640, 480, &gift.GiftImageCounter{})
+	mapGiftServer := gift.NewGiftServer(640, 480, &gift.GiftImageMap{})
 
-	http.HandleFunc("/", giftServer.Handler)
+	http.HandleFunc("/counter.gif", counterGiftServer.Handler)
+	http.HandleFunc("/map.gif", mapGiftServer.Handler)
+
 	http.ListenAndServe(":8080", nil)
 }
