@@ -2,6 +2,7 @@ package gift
 
 import (
 	"image"
+	"image/draw"
 	"image/gif"
 	"log"
 	"net/http"
@@ -14,26 +15,54 @@ type GiftImageNuke struct {
 	httpImages    chan GiftImage
 }
 
+func embedGif(path string, images chan GiftImage) error {
+	gifFile, err := os.Open(path)
+	if err != nil {
+		log.Printf("Unable to open gif: %s", path)
+		return err
+	}
+	defer gifFile.Close()
+	frames, err := gif.DecodeAll(gifFile)
+	if err != nil {
+		log.Printf("Unable to decode gif: %s", path)
+		return err
+	}
+	for i := range frames.Image {
+		images <- GiftImage{img: frames.Image[i], frameTimeMS: frames.Delay[i]}
+	}
+	return nil
+}
+
+func overlayGif(path string, img *image.Paletted, images chan GiftImage) error {
+	gifFile, err := os.Open(path)
+	if err != nil {
+		log.Printf("Unable to open gif: %s", path)
+		return err
+	}
+	defer gifFile.Close()
+	frames, err := gif.DecodeAll(gifFile)
+	if err != nil {
+		log.Printf("Unable to decode gif: %s", path)
+		return err
+	}
+	for i := range frames.Image {
+		output := image.NewPaletted(img.Bounds(), img.Palette)
+		draw.Over.Draw(output, img.Bounds(), frames.Image[i], image.Pt(0, 0))
+		images <- GiftImage{img: output, frameTimeMS: frames.Delay[i]}
+	}
+	return nil
+}
+
 func (g *GiftImageNuke) Geo(lat, long, heading float64) {
 	g.lat = lat
 	g.long = long
 
 	go func() {
 		defer close(g.httpImages)
-		launchFile, err := os.Open("nuke/nasr.gif")
-		if err != nil {
-			log.Printf("Unable to open intro nuke gif")
-			return
-		}
-		frames, err := gif.DecodeAll(launchFile)
-		if err != nil {
-			log.Printf("Unable to decode intro nuke gif")
-			return
-		}
-		for i := range frames.Image {
-			g.httpImages <- GiftImage{img: frames.Image[i], frameTimeMS: frames.Delay[i]}
-		}
 
+		embedGif("nuke/nasr.gif", g.httpImages)
+
+		var img image.Image
 		for i := 0; i < 8; i++ {
 			url := mapURL(lat, long, g.width, g.height, i*3)
 			resp, err := http.Get(url)
@@ -41,13 +70,17 @@ func (g *GiftImageNuke) Geo(lat, long, heading float64) {
 				log.Printf("Error requesting map: %d: %+v\n", i, err)
 				continue
 			}
-			img, err := gif.Decode(resp.Body)
+			// Reuse our image we declared outside this loop so we can
+			// overlay on top of this last frame
+			img, err = gif.Decode(resp.Body)
 			if err != nil {
 				log.Printf("Error decoding map: %+v", err)
 				continue
 			}
 			g.httpImages <- GiftImage{img: img.(*image.Paletted), frameTimeMS: 100}
 		}
+
+		overlayGif("nuke/explosion.gif", img.(*image.Paletted), g.httpImages)
 	}()
 }
 
