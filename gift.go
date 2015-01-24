@@ -21,8 +21,10 @@ type GiftServer struct {
 }
 
 type GiftImage struct {
-	frameTimeMS int
-	img         *image.Paletted
+	img           *image.Paletted
+	frameTimeMS   int
+	disposalFlags uint8
+	offset        image.Point
 }
 
 func NewGiftServer(w, h int, source GiftImageSource) GiftServer {

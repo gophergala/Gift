@@ -8,12 +8,20 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 )
 
 type GiftImageNuke struct {
 	lat, long     float64
 	width, height int
 	httpImages    chan GiftImage
+}
+
+func measure(fun func(), desc string) {
+	start := time.Now()
+	fun()
+	end := time.Now()
+	log.Printf("%s took: %+v", desc, end.Sub(start))
 }
 
 func embedGif(path string, images chan GiftImage) error {
@@ -34,7 +42,7 @@ func embedGif(path string, images chan GiftImage) error {
 	return nil
 }
 
-func overlayGif(path string, img *image.Paletted, images chan GiftImage) error {
+func overlayGif(path string, bounds image.Rectangle, images chan GiftImage) error {
 	gifFile, err := os.Open(path)
 	if err != nil {
 		log.Printf("Unable to open gif: %s", path)
@@ -46,22 +54,17 @@ func overlayGif(path string, img *image.Paletted, images chan GiftImage) error {
 		log.Printf("Unable to decode gif: %s", path)
 		return err
 	}
-	for i := range frames.Image {
-		frame := &frames.Image[i]
-		output := image.NewPaletted(img.Bounds(), img.Palette)
-		copy(output.Pix, img.Pix)
 
-		parentWidth := img.Bounds().Dx()
-		parentHeight := img.Bounds().Dy()
-		childWidth := (*frame).Bounds().Dx()
-		childHeight := (*frame).Bounds().Dy()
+	for i, frame := range frames.Image {
 
-		centerPtMin := image.Pt(parentWidth/2-childWidth/2, parentHeight/2-childHeight/2)
-		centerPtMax := image.Pt(parentWidth/2+childWidth, parentHeight/2+childHeight)
-		centerRect := image.Rectangle{centerPtMin, centerPtMax}
+		parentWidth := bounds.Dx()
+		parentHeight := bounds.Dy()
+		childWidth := frame.Bounds().Dx()
+		childHeight := frame.Bounds().Dy()
 
-		draw.Over.Draw(output, centerRect, frames.Image[i], image.Pt(0, 0))
-		images <- GiftImage{img: output, frameTimeMS: frames.Delay[i]}
+		offsetPt := image.Pt(parentWidth/2-childWidth/2, parentHeight/2-childHeight/2)
+
+		images <- GiftImage{img: frame, frameTimeMS: frames.Delay[i], disposalFlags: DISPOSAL_RESTORE_PREV, offset: offsetPt}
 	}
 	return nil
 }
@@ -93,7 +96,9 @@ func (g *GiftImageNuke) Geo(lat, long, heading float64) {
 			g.httpImages <- GiftImage{img: img.(*image.Paletted), frameTimeMS: 100}
 		}
 
-		overlayGif("nuke/explosion.gif", img.(*image.Paletted), g.httpImages)
+		measure(func() {
+			overlayGif("nuke/explosion.gif", img.Bounds(), g.httpImages)
+		}, "nuke overlay")
 
 		black := image.NewPaletted(img.Bounds(), palette.Plan9)
 		draw.Src.Draw(black, img.Bounds(), image.Black, image.Pt(0, 0))

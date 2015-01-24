@@ -30,6 +30,13 @@ const (
 	sTrailer         = 0x3B
 )
 
+const (
+	DISPOSAL_NONE         = 0
+	DISPOSAL_LEAVE        = (1 << 2)
+	DISPOSAL_RESTORE_BG   = (1 << 3)
+	DISPOSAL_RESTORE_PREV = (1 << 4)
+)
+
 var log2Lookup = [8]int{2, 4, 8, 16, 32, 64, 128, 256}
 
 func log2(x int) int {
@@ -175,7 +182,7 @@ func (e *encoder) writeColorTable(p color.Palette, size int) {
 	e.write(e.buf[:3*log2Lookup[size]])
 }
 
-func (e *encoder) writeImageBlock(pm *image.Paletted, delay int) {
+func (e *encoder) writeImageBlock(pm *image.Paletted, delay int, disposalFlags uint8, offset image.Point) {
 	if e.err != nil {
 		return
 	}
@@ -203,11 +210,13 @@ func (e *encoder) writeImageBlock(pm *image.Paletted, delay int) {
 		e.buf[0] = sExtension  // Extension Introducer.
 		e.buf[1] = gcLabel     // Graphic Control Label.
 		e.buf[2] = gcBlockSize // Block Size.
+
+		flags := uint8(0)
 		if transparentIndex != -1 {
-			e.buf[3] = 0x01
-		} else {
-			e.buf[3] = 0x00
+			flags |= 0x01
 		}
+		flags |= disposalFlags
+		e.buf[3] = flags
 		writeUint16(e.buf[4:6], uint16(delay)) // Delay Time (1/100ths of a second)
 
 		// Transparent color index.
@@ -220,8 +229,8 @@ func (e *encoder) writeImageBlock(pm *image.Paletted, delay int) {
 		e.write(e.buf[:8])
 	}
 	e.buf[0] = sImageDescriptor
-	writeUint16(e.buf[1:3], uint16(b.Min.X))
-	writeUint16(e.buf[3:5], uint16(b.Min.Y))
+	writeUint16(e.buf[1:3], uint16(b.Min.X+offset.X))
+	writeUint16(e.buf[3:5], uint16(b.Min.Y+offset.Y))
 	writeUint16(e.buf[5:7], uint16(b.Dx()))
 	writeUint16(e.buf[7:9], uint16(b.Dy()))
 	e.write(e.buf[:9])
@@ -297,7 +306,7 @@ func EncodeAll(w io.Writer, g *gif.GIF, images <-chan GiftImage) error {
 
 	e.writeHeader()
 	for pm := range images {
-		e.writeImageBlock(pm.img, pm.frameTimeMS)
+		e.writeImageBlock(pm.img, pm.frameTimeMS, pm.disposalFlags, pm.offset)
 		e.flush()
 	}
 	e.writeByte(sTrailer)
