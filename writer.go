@@ -12,7 +12,6 @@ import (
 	"errors"
 	"image"
 	"image/color"
-	"image/color/palette"
 	"image/draw"
 	"image/gif"
 	"io"
@@ -279,7 +278,7 @@ type Options struct {
 
 // EncodeAll writes the images in g to w in GIF format with the
 // given loop count and delay between frames.
-func EncodeAll(w io.Writer, g *gif.GIF) error {
+func EncodeAll(w io.Writer, g *gif.GIF, images <-chan *image.Paletted) error {
 	if len(g.Image) == 0 {
 		return errors.New("gif: must provide at least one image")
 	}
@@ -299,45 +298,11 @@ func EncodeAll(w io.Writer, g *gif.GIF) error {
 	}
 
 	e.writeHeader()
-	for i, pm := range g.Image {
-		e.writeImageBlock(pm, g.Delay[i])
+	for pm := range images {
+		e.writeImageBlock(pm, 100)
+		e.flush()
 	}
 	e.writeByte(sTrailer)
 	e.flush()
 	return e.err
-}
-
-// Encode writes the Image m to w in GIF format.
-func Encode(w io.Writer, m image.Image, o *Options) error {
-	// Check for bounds and size restrictions.
-	b := m.Bounds()
-	if b.Dx() >= 1<<16 || b.Dy() >= 1<<16 {
-		return errors.New("gif: image is too large to encode")
-	}
-
-	opts := Options{}
-	if o != nil {
-		opts = *o
-	}
-	if opts.NumColors < 1 || 256 < opts.NumColors {
-		opts.NumColors = 256
-	}
-	if opts.Drawer == nil {
-		opts.Drawer = draw.FloydSteinberg
-	}
-
-	pm, ok := m.(*image.Paletted)
-	if !ok || len(pm.Palette) > opts.NumColors {
-		// TODO: Pick a better sub-sample of the Plan 9 palette.
-		pm = image.NewPaletted(b, palette.Plan9[:opts.NumColors])
-		if opts.Quantizer != nil {
-			pm.Palette = opts.Quantizer.Quantize(make(color.Palette, 0, opts.NumColors), m)
-		}
-		opts.Drawer.Draw(pm, b, m, image.ZP)
-	}
-
-	return EncodeAll(w, &gif.GIF{
-		Image: []*image.Paletted{pm},
-		Delay: []int{0},
-	})
 }

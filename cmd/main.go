@@ -1,18 +1,16 @@
 package main
 
 import (
-	// "github.com/gophergala/Gift"
+	"github.com/gophergala/Gift"
+
 	"log"
 	"net/http"
 )
 
-func handler(w http.ResponseWriter, r *http.Request) {
-	log.Printf("Request start")
-
-	log.Printf("Request complete")
-}
-
 func main() {
-	http.HandleFunc("/", handler)
+	log.Printf("Starting GIFT server")
+	giftServer := gift.NewGiftServer(640, 480, &gift.GiftImageCounter{})
+
+	http.HandleFunc("/", giftServer.Handler)
 	http.ListenAndServe(":8080", nil)
 }
