@@ -5,8 +5,10 @@ import (
 
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net/http"
 	"net/url"
+	"time"
 )
 
 func storeGeoInCookies(w http.ResponseWriter, r *http.Request) {
@@ -33,6 +35,7 @@ func storeGeoInCookies(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	rand.Seed(time.Now().UTC().UnixNano())
 	log.Printf("Starting GIFT server")
 	counterGiftServer := gift.NewGiftServer(640, 480, &gift.GiftImageCounter{})
 	mapGiftServer := gift.NewGiftServer(640, 480, &gift.GiftImageMap{})
