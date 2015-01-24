@@ -2,6 +2,7 @@ package gift
 
 import (
 	"image"
+	"image/color/palette"
 	"image/draw"
 	"image/gif"
 	"log"
@@ -46,8 +47,20 @@ func overlayGif(path string, img *image.Paletted, images chan GiftImage) error {
 		return err
 	}
 	for i := range frames.Image {
+		frame := &frames.Image[i]
 		output := image.NewPaletted(img.Bounds(), img.Palette)
-		draw.Over.Draw(output, img.Bounds(), frames.Image[i], image.Pt(0, 0))
+		copy(output.Pix, img.Pix)
+
+		parentWidth := img.Bounds().Dx()
+		parentHeight := img.Bounds().Dy()
+		childWidth := (*frame).Bounds().Dx()
+		childHeight := (*frame).Bounds().Dy()
+
+		centerPtMin := image.Pt(parentWidth/2-childWidth/2, parentHeight/2-childHeight/2)
+		centerPtMax := image.Pt(parentWidth/2+childWidth, parentHeight/2+childHeight)
+		centerRect := image.Rectangle{centerPtMin, centerPtMax}
+
+		draw.Over.Draw(output, centerRect, frames.Image[i], image.Pt(0, 0))
 		images <- GiftImage{img: output, frameTimeMS: frames.Delay[i]}
 	}
 	return nil
@@ -63,7 +76,7 @@ func (g *GiftImageNuke) Geo(lat, long, heading float64) {
 		embedGif("nuke/nasr.gif", g.httpImages)
 
 		var img image.Image
-		for i := 0; i < 8; i++ {
+		for i := 1; i < 7; i++ {
 			url := mapURL(lat, long, g.width, g.height, i*3)
 			resp, err := http.Get(url)
 			if err != nil {
@@ -81,6 +94,11 @@ func (g *GiftImageNuke) Geo(lat, long, heading float64) {
 		}
 
 		overlayGif("nuke/explosion.gif", img.(*image.Paletted), g.httpImages)
+
+		black := image.NewPaletted(img.Bounds(), palette.Plan9)
+		draw.Src.Draw(black, img.Bounds(), image.Black, image.Pt(0, 0))
+
+		g.httpImages <- GiftImage{img: black, frameTimeMS: 2000}
 	}()
 }
 
