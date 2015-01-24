@@ -10,7 +10,9 @@ import (
 	"strconv"
 )
 
-func (gs *GiftServer) Handler(w http.ResponseWriter, r *http.Request) {
+// Handler deals with our image sources.  It sets up a pipe between the
+// image source, the gif encoder, and the http.ResponseWriter
+func (gs *Server) Handler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Request start")
 	gs.source.Setup(gs.width, gs.height)
 	w.Header().Set("Content-Type", "image/gif")
@@ -76,7 +78,7 @@ func (gs *GiftServer) Handler(w http.ResponseWriter, r *http.Request) {
 	g.Delay = append(g.Delay, 100)
 	g.LoopCount = 0
 
-	images := make(chan GiftImage)
+	images := make(chan giftImage)
 
 	go gs.source.Pipe(images)
 

@@ -1,10 +1,15 @@
 package gift
 
 import (
+	"code.google.com/p/freetype-go/freetype"
+	"code.google.com/p/freetype-go/freetype/truetype"
+
 	"image"
+	"image/color"
 	"image/color/palette"
 	"image/draw"
 	"image/gif"
+	"io/ioutil"
 	"log"
 	"math"
 	"math/rand"
@@ -13,10 +18,15 @@ import (
 	"time"
 )
 
-type GiftImageNuke struct {
+// ImageNuke loads your geo location(or other provided position) and
+// drops a nuke on it
+type ImageNuke struct {
+	font *truetype.Font
+	c    *freetype.Context
+
 	lat, long     float64
 	width, height int
-	httpImages    chan GiftImage
+	httpImages    chan giftImage
 }
 
 func measure(fun func(), desc string) {
@@ -26,11 +36,11 @@ func measure(fun func(), desc string) {
 	log.Printf("%s took: %+v", desc, end.Sub(start))
 }
 
-func overlayGif(path string, bounds image.Rectangle, images chan GiftImage) error {
-	return embedGif(path, bounds, image.Pt(0, 0), DISPOSAL_RESTORE_BG, images)
+func overlayGif(path string, bounds image.Rectangle, images chan giftImage) error {
+	return embedGif(path, bounds, image.Pt(0, 0), disposalRestoreBg, images)
 }
 
-func embedGif(path string, bounds image.Rectangle, offset image.Point, disposalFlags uint8, images chan GiftImage) error {
+func embedGif(path string, bounds image.Rectangle, offset image.Point, disposalFlags uint8, images chan giftImage) error {
 	gifFile, err := os.Open(path)
 	if err != nil {
 		log.Printf("Unable to open gif: %s", path)
@@ -52,12 +62,12 @@ func embedGif(path string, bounds image.Rectangle, offset image.Point, disposalF
 
 		offsetPt := image.Pt(parentWidth/2-childWidth/2, parentHeight/2-childHeight/2)
 
-		images <- GiftImage{img: frame, frameTimeMS: frames.Delay[i], disposalFlags: DISPOSAL_RESTORE_PREV, offset: offsetPt}
+		images <- giftImage{img: frame, frameTimeMS: frames.Delay[i], disposalFlags: disposalRestorePrev, offset: offsetPt}
 	}
 	return nil
 }
 
-func embedFrame(path string, bounds image.Rectangle, offset image.Point, disposalFlags uint8, frameTimeMS int, images chan GiftImage) error {
+func embedFrame(path string, bounds image.Rectangle, offset image.Point, disposalFlags uint8, frameTimeMS int, images chan giftImage) error {
 	gifFile, err := os.Open(path)
 	if err != nil {
 		log.Printf("Unable to open gif: %s", path)
@@ -75,11 +85,20 @@ func embedFrame(path string, bounds image.Rectangle, offset image.Point, disposa
 	offsetPt.X += offset.X - center.X
 	offsetPt.Y += offset.Y - center.Y
 
-	images <- GiftImage{img: frame.(*image.Paletted), frameTimeMS: frameTimeMS, disposalFlags: DISPOSAL_RESTORE_PREV, offset: offsetPt}
+	images <- giftImage{img: frame.(*image.Paletted), frameTimeMS: frameTimeMS, disposalFlags: disposalRestorePrev, offset: offsetPt}
 	return nil
 }
 
-func (g *GiftImageNuke) Geo(lat, long, heading float64) {
+func (g *ImageNuke) drawString(img *image.Paletted, x, y int, text string) {
+	g.c.SetDst(img)
+	pt := freetype.Pt(x, y)
+	g.c.DrawString(text, pt)
+}
+
+// Geo takes our lat/long and starts streaming some gif images, overlays some
+// text on top of the map, along with the targeting reticle, and then plays
+// the explosion animation over the final position
+func (g *ImageNuke) Geo(lat, long, heading float64) {
 	g.lat = lat
 	g.long = long
 
@@ -89,6 +108,16 @@ func (g *GiftImageNuke) Geo(lat, long, heading float64) {
 		measure(func() {
 			overlayGif("nuke/nasr.gif", image.Rect(0, 0, g.width, g.height), g.httpImages)
 		}, "rocket launch image")
+
+		strings := []string{
+			"",
+			"LAUNCH DETECTED",
+			"",
+			"ACQUIRING TARGET",
+			"",
+			"TARGET ACQUIRED",
+			"",
+		}
 
 		var img image.Image
 		measure(func() {
@@ -104,15 +133,21 @@ func (g *GiftImageNuke) Geo(lat, long, heading float64) {
 					log.Printf("Error requesting map: %d: %+v\n", i, err)
 					continue
 				}
-				// Reuse our image we declared outside this loop so we can
-				// overlay on top of this last frame
+
 				img, err = gif.Decode(resp.Body)
 				if err != nil {
 					log.Printf("Error decoding map: %+v", err)
 					continue
 				}
-				g.httpImages <- GiftImage{img: img.(*image.Paletted), frameTimeMS: 10}
+				g.httpImages <- giftImage{img: img.(*image.Paletted), frameTimeMS: 10}
+
+				img = image.NewPaletted(img.Bounds(), palette.Plan9)
+				img.(*image.Paletted).Palette[0] = color.RGBA{0, 0, 0, 0}
 				center := image.Pt(img.Bounds().Dx()/2, img.Bounds().Dy()/2)
+				g.drawString(img.(*image.Paletted), 10, 48, strings[i])
+
+				g.httpImages <- giftImage{img: img.(*image.Paletted), frameTimeMS: 10}
+
 				startSide := rand.Intn(4)
 				var startPt = image.Pt(0, 0)
 				switch startSide {
@@ -137,16 +172,15 @@ func (g *GiftImageNuke) Geo(lat, long, heading float64) {
 				timeStep := float64(10)
 				for j := 0; j < crosshairSteps; j++ {
 
-					t := (float64(j) / float64(crosshairSteps)) * dlen
+					t := (float64(j+1) / float64(crosshairSteps)) * dlen
 
 					pt := image.Pt(startPt.X+int(dx*t), startPt.Y+int(dy*t))
-					log.Printf("Point: %+v %f %f %f", pt, dx, dy, t)
 
 					ts := int(timeStep)
 					if j == crosshairSteps-1 {
-						embedFrame("nuke/crosshair.gif", img.Bounds(), pt, DISPOSAL_RESTORE_BG, ts+100, g.httpImages)
+						embedFrame("nuke/crosshair.gif", img.Bounds(), pt, disposalRestoreBg, ts+100, g.httpImages)
 					} else {
-						embedFrame("nuke/crosshair_small.gif", img.Bounds(), pt, DISPOSAL_RESTORE_BG, ts, g.httpImages)
+						embedFrame("nuke/crosshair_small.gif", img.Bounds(), pt, disposalRestoreBg, ts, g.httpImages)
 
 					}
 				}
@@ -160,19 +194,42 @@ func (g *GiftImageNuke) Geo(lat, long, heading float64) {
 		black := image.NewPaletted(img.Bounds(), palette.Plan9)
 		draw.Src.Draw(black, img.Bounds(), image.Black, image.Pt(0, 0))
 
-		g.httpImages <- GiftImage{img: black, frameTimeMS: 200}
+		g.httpImages <- giftImage{img: black, frameTimeMS: 200}
 	}()
 }
 
-func (g *GiftImageNuke) Pipe(images chan GiftImage) {
+// Pipe is a simple pipe between our internal channel, and the channel the server provides
+func (g *ImageNuke) Pipe(images chan giftImage) {
 	log.Printf("About to send nuke map")
 	for pm := range g.httpImages {
 		images <- pm
 	}
 	close(images)
 }
-func (g *GiftImageNuke) Setup(width, height int) {
+
+// Setup initializes our width and height and loads the font
+func (g *ImageNuke) Setup(width, height int) {
 	g.width = width
 	g.height = height
-	g.httpImages = make(chan GiftImage)
+
+	fontBytes, err := ioutil.ReadFile("TimesNewRoman.ttf")
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	g.font, err = freetype.ParseFont(fontBytes)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	fg := image.NewUniform(color.RGBA{255, 0, 0, 255})
+	g.c = freetype.NewContext()
+	g.c.SetDPI(72)
+	g.c.SetFont(g.font)
+	g.c.SetFontSize(48)
+	g.c.SetClip(image.Rect(0, 0, width, height))
+	g.c.SetSrc(fg)
+
+	g.httpImages = make(chan giftImage)
 }

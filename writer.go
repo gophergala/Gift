@@ -30,11 +30,12 @@ const (
 	sTrailer         = 0x3B
 )
 
+// Frame disposal flags.
 const (
-	DISPOSAL_NONE         = 0
-	DISPOSAL_LEAVE        = (1 << 2)
-	DISPOSAL_RESTORE_BG   = (1 << 3)
-	DISPOSAL_RESTORE_PREV = (1 << 4)
+	disposalNone        = 0
+	disposalLeave       = (1 << 2)
+	disposalRestoreBg   = (1 << 3)
+	disposalRestorePrev = (1 << 4)
 )
 
 var log2Lookup = [8]int{2, 4, 8, 16, 32, 64, 128, 256}
@@ -285,7 +286,7 @@ type Options struct {
 
 // EncodeAll writes the images in g to w in GIF format with the
 // given loop count and delay between frames.
-func EncodeAll(w io.Writer, g *gif.GIF, images <-chan GiftImage) error {
+func EncodeAll(w io.Writer, g *gif.GIF, images <-chan giftImage) error {
 	if len(g.Image) == 0 {
 		return errors.New("gif: must provide at least one image")
 	}

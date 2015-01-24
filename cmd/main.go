@@ -37,9 +37,9 @@ func storeGeoInCookies(w http.ResponseWriter, r *http.Request) {
 func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
 	log.Printf("Starting GIFT server")
-	counterGiftServer := gift.NewGiftServer(640, 480, &gift.GiftImageCounter{})
-	mapGiftServer := gift.NewGiftServer(640, 480, &gift.GiftImageMap{})
-	nukeGiftServer := gift.NewGiftServer(480, 360, &gift.GiftImageNuke{})
+	counterGiftServer := gift.NewGiftServer(640, 480, &gift.ImageCounter{})
+	mapGiftServer := gift.NewGiftServer(640, 480, &gift.ImageMap{})
+	nukeGiftServer := gift.NewGiftServer(480, 360, &gift.ImageNuke{})
 
 	http.HandleFunc("/counter.gif", counterGiftServer.Handler)
 	http.HandleFunc("/map.gif", mapGiftServer.Handler)

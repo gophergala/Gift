@@ -8,10 +8,11 @@ import (
 	"net/http"
 )
 
-type GiftImageMap struct {
+// ImageMap looks up several map zoom levels from google maps
+type ImageMap struct {
 	lat, long     float64
 	width, height int
-	httpImages    chan GiftImage
+	httpImages    chan giftImage
 }
 
 var mapRoot = "https://maps.googleapis.com/maps/api/staticmap"
@@ -20,7 +21,8 @@ func mapURL(centerX, centerY float64, width, height, zoom int, maptype string) s
 	return fmt.Sprintf("%s?center=%f,%f&zoom=%d&size=%dx%d&format=gif&maptype=%s", mapRoot, centerX, centerY, zoom, width, height, maptype)
 }
 
-func (g *GiftImageMap) Geo(lat, long, heading float64) {
+// Geo spawns a goroutine to load our map images and feed them to our internal image channel
+func (g *ImageMap) Geo(lat, long, heading float64) {
 	g.lat = lat
 	g.long = long
 
@@ -39,20 +41,23 @@ func (g *GiftImageMap) Geo(lat, long, heading float64) {
 				log.Printf("Error decoding map: %+v", err)
 				continue
 			}
-			g.httpImages <- GiftImage{img: img.(*image.Paletted), frameTimeMS: 100}
+			g.httpImages <- giftImage{img: img.(*image.Paletted), frameTimeMS: 100}
 		}
 	}()
 }
 
-func (g *GiftImageMap) Pipe(images chan GiftImage) {
+// Pipe sends our internal images back to the server through the channel
+func (g *ImageMap) Pipe(images chan giftImage) {
 	defer close(images)
 	log.Printf("About to send map")
 	for pm := range g.httpImages {
 		images <- pm
 	}
 }
-func (g *GiftImageMap) Setup(width, height int) {
+
+// Setup initializes our ImageMap and creates our internal image channel
+func (g *ImageMap) Setup(width, height int) {
 	g.width = width
 	g.height = height
-	g.httpImages = make(chan GiftImage)
+	g.httpImages = make(chan giftImage)
 }

@@ -11,28 +11,33 @@ import (
 	"log"
 )
 
-type GiftImageCounter struct {
+// ImageCounter is a quick debug image to print out text over an image.
+type ImageCounter struct {
 	font          *truetype.Font
 	c             *freetype.Context
 	width, height int
 }
 
-func (g *GiftImageCounter) Geo(lat, long, heading float64) {
+// Geo is a nop
+func (g *ImageCounter) Geo(lat, long, heading float64) {
 }
 
-func (g *GiftImageCounter) Pipe(images chan GiftImage) {
+// Pipe sends our frames to the server.
+func (g *ImageCounter) Pipe(images chan giftImage) {
 	defer close(images)
-	log.Printf("About to send GiftImageCounter")
+	log.Printf("About to send ImageCounter")
 	for i := 0; i < 10; i++ {
 		img := image.NewPaletted(image.Rect(0, 0, g.width, g.height), palette.Plan9)
 		g.c.SetDst(img)
 		pt := freetype.Pt(g.width/2-100, g.height/2)
 		g.c.DrawString(fmt.Sprintf("Frame: %d", i), pt)
 
-		images <- GiftImage{img: img, frameTimeMS: 100}
+		images <- giftImage{img: img, frameTimeMS: 100}
 	}
 }
-func (g *GiftImageCounter) Setup(width, height int) {
+
+// Setup loads our font
+func (g *ImageCounter) Setup(width, height int) {
 	fontBytes, err := ioutil.ReadFile("TimesNewRoman.ttf")
 	if err != nil {
 		log.Println(err)
