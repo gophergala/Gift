@@ -138,22 +138,20 @@ func (e *encoder) writeHeader() {
 	e.buf[2] = 0x00 // Pixel Aspect Ratio.
 	e.write(e.buf[:3])
 
-	// Add animation info if necessary.
-	if len(e.g.Image) > 1 {
-		e.buf[0] = 0x21 // Extension Introducer.
-		e.buf[1] = 0xff // Application Label.
-		e.buf[2] = 0x0b // Block Size.
-		e.write(e.buf[:3])
-		_, e.err = io.WriteString(e.w, "NETSCAPE2.0") // Application Identifier.
-		if e.err != nil {
-			return
-		}
-		e.buf[0] = 0x03 // Block Size.
-		e.buf[1] = 0x01 // Sub-block Index.
-		writeUint16(e.buf[2:4], uint16(e.g.LoopCount))
-		e.buf[4] = 0x00 // Block Terminator.
-		e.write(e.buf[:5])
+	// Add animation info(we are always going to be animated)
+	e.buf[0] = 0x21 // Extension Introducer.
+	e.buf[1] = 0xff // Application Label.
+	e.buf[2] = 0x0b // Block Size.
+	e.write(e.buf[:3])
+	_, e.err = io.WriteString(e.w, "NETSCAPE2.0") // Application Identifier.
+	if e.err != nil {
+		return
 	}
+	e.buf[0] = 0x03 // Block Size.
+	e.buf[1] = 0x01 // Sub-block Index.
+	writeUint16(e.buf[2:4], uint16(e.g.LoopCount))
+	e.buf[4] = 0x00 // Block Terminator.
+	e.write(e.buf[:5])
 }
 
 func (e *encoder) writeColorTable(p color.Palette, size int) {
