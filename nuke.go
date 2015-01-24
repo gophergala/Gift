@@ -11,7 +11,7 @@ import (
 type GiftImageNuke struct {
 	lat, long     float64
 	width, height int
-	httpImages    chan *image.Paletted
+	httpImages    chan GiftImage
 }
 
 func (g *GiftImageNuke) Geo(lat, long, heading float64) {
@@ -31,7 +31,7 @@ func (g *GiftImageNuke) Geo(lat, long, heading float64) {
 			return
 		}
 		for i := range frames.Image {
-			g.httpImages <- frames.Image[i]
+			g.httpImages <- GiftImage{img: frames.Image[i], frameTimeMS: frames.Delay[i]}
 		}
 
 		for i := 0; i < 8; i++ {
@@ -46,12 +46,12 @@ func (g *GiftImageNuke) Geo(lat, long, heading float64) {
 				log.Printf("Error decoding map: %+v", err)
 				continue
 			}
-			g.httpImages <- img.(*image.Paletted)
+			g.httpImages <- GiftImage{img: img.(*image.Paletted), frameTimeMS: 100}
 		}
 	}()
 }
 
-func (g *GiftImageNuke) Pipe(images chan *image.Paletted) {
+func (g *GiftImageNuke) Pipe(images chan GiftImage) {
 	log.Printf("About to send nuke map")
 	for pm := range g.httpImages {
 		images <- pm
@@ -61,5 +61,5 @@ func (g *GiftImageNuke) Pipe(images chan *image.Paletted) {
 func (g *GiftImageNuke) Setup(width, height int) {
 	g.width = width
 	g.height = height
-	g.httpImages = make(chan *image.Paletted)
+	g.httpImages = make(chan GiftImage)
 }

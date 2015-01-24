@@ -276,7 +276,7 @@ type Options struct {
 
 // EncodeAll writes the images in g to w in GIF format with the
 // given loop count and delay between frames.
-func EncodeAll(w io.Writer, g *gif.GIF, images <-chan *image.Paletted) error {
+func EncodeAll(w io.Writer, g *gif.GIF, images <-chan GiftImage) error {
 	if len(g.Image) == 0 {
 		return errors.New("gif: must provide at least one image")
 	}
@@ -297,7 +297,7 @@ func EncodeAll(w io.Writer, g *gif.GIF, images <-chan *image.Paletted) error {
 
 	e.writeHeader()
 	for pm := range images {
-		e.writeImageBlock(pm, 100)
+		e.writeImageBlock(pm.img, pm.frameTimeMS)
 		e.flush()
 	}
 	e.writeByte(sTrailer)

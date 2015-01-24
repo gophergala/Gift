@@ -11,7 +11,7 @@ import (
 type GiftImageMap struct {
 	lat, long     float64
 	width, height int
-	httpImages    chan *image.Paletted
+	httpImages    chan GiftImage
 }
 
 var mapRoot = "https://maps.googleapis.com/maps/api/staticmap"
@@ -25,8 +25,9 @@ func (g *GiftImageMap) Geo(lat, long, heading float64) {
 	g.long = long
 
 	go func() {
+		defer close(g.httpImages)
 
-		for i := 0; i < 8; i++ {
+		for i := 1; i < 6; i++ {
 			url := mapURL(lat, long, g.width, g.height, i*3)
 			resp, err := http.Get(url)
 			if err != nil {
@@ -38,21 +39,20 @@ func (g *GiftImageMap) Geo(lat, long, heading float64) {
 				log.Printf("Error decoding map: %+v", err)
 				continue
 			}
-			g.httpImages <- img.(*image.Paletted)
+			g.httpImages <- GiftImage{img: img.(*image.Paletted), frameTimeMS: 100}
 		}
-		close(g.httpImages)
 	}()
 }
 
-func (g *GiftImageMap) Pipe(images chan *image.Paletted) {
+func (g *GiftImageMap) Pipe(images chan GiftImage) {
+	defer close(images)
 	log.Printf("About to send map")
 	for pm := range g.httpImages {
 		images <- pm
 	}
-	close(images)
 }
 func (g *GiftImageMap) Setup(width, height int) {
 	g.width = width
 	g.height = height
-	g.httpImages = make(chan *image.Paletted)
+	g.httpImages = make(chan GiftImage)
 }

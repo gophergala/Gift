@@ -9,7 +9,6 @@ import (
 	"image/color/palette"
 	"io/ioutil"
 	"log"
-	"time"
 )
 
 type GiftImageCounter struct {
@@ -21,7 +20,8 @@ type GiftImageCounter struct {
 func (g *GiftImageCounter) Geo(lat, long, heading float64) {
 }
 
-func (g *GiftImageCounter) Pipe(images chan *image.Paletted) {
+func (g *GiftImageCounter) Pipe(images chan GiftImage) {
+	defer close(images)
 	log.Printf("About to send GiftImageCounter")
 	for i := 0; i < 10; i++ {
 		img := image.NewPaletted(image.Rect(0, 0, g.width, g.height), palette.Plan9)
@@ -29,10 +29,8 @@ func (g *GiftImageCounter) Pipe(images chan *image.Paletted) {
 		pt := freetype.Pt(g.width/2-100, g.height/2)
 		g.c.DrawString(fmt.Sprintf("Frame: %d", i), pt)
 
-		images <- img
-		time.Sleep(100 * time.Millisecond)
+		images <- GiftImage{img: img, frameTimeMS: 100}
 	}
-	close(images)
 }
 func (g *GiftImageCounter) Setup(width, height int) {
 	fontBytes, err := ioutil.ReadFile("TimesNewRoman.ttf")

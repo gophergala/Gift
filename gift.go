@@ -10,7 +10,7 @@ import (
 type GiftImageSource interface {
 	Setup(width, height int)
 	Geo(lat, long, heading float64)
-	Pipe(images chan *image.Paletted)
+	Pipe(images chan GiftImage)
 }
 
 type GiftServer struct {
@@ -18,6 +18,11 @@ type GiftServer struct {
 	width  int
 	height int
 	source GiftImageSource
+}
+
+type GiftImage struct {
+	frameTimeMS int
+	img         *image.Paletted
 }
 
 func NewGiftServer(w, h int, source GiftImageSource) GiftServer {

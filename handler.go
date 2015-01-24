@@ -76,7 +76,7 @@ func (gs *GiftServer) Handler(w http.ResponseWriter, r *http.Request) {
 	g.Delay = append(g.Delay, 100)
 	g.LoopCount = 0
 
-	images := make(chan *image.Paletted)
+	images := make(chan GiftImage)
 
 	go gs.source.Pipe(images)
 
