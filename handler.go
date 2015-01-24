@@ -14,8 +14,14 @@ import (
 // image source, the gif encoder, and the http.ResponseWriter
 func (gs *Server) Handler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Request start")
+
 	gs.source.Setup(gs.width, gs.height)
+
 	w.Header().Set("Content-Type", "image/gif")
+	// Try our best to never cache this image
+	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate") // HTTP 1.1.
+	w.Header().Set("Pragma", "no-cache")                                   // HTTP 1.0.
+	w.Header().Set("Expires", "0")                                         // Proxies
 
 	var latitude, longitude float64
 	var err error
