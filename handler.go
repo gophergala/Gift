@@ -77,7 +77,7 @@ func (gs *Server) Handler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		heading = 90
 	}
-	gs.source.Geo(latitude, longitude, heading)
+	go gs.source.Geo(latitude, longitude, heading)
 
 	g := gif.GIF{}
 	g.Image = append(g.Image, image.NewPaletted(image.Rect(0, 0, gs.width, gs.height), palette.Plan9))
