@@ -36,9 +36,11 @@ func main() {
 	log.Printf("Starting GIFT server")
 	counterGiftServer := gift.NewGiftServer(640, 480, &gift.GiftImageCounter{})
 	mapGiftServer := gift.NewGiftServer(640, 480, &gift.GiftImageMap{})
+	nukeGiftServer := gift.NewGiftServer(480, 360, &gift.GiftImageNuke{})
 
 	http.HandleFunc("/counter.gif", counterGiftServer.Handler)
 	http.HandleFunc("/map.gif", mapGiftServer.Handler)
+	http.HandleFunc("/nuke.gif", nukeGiftServer.Handler)
 	http.HandleFunc("/setgeo", storeGeoInCookies)
 	http.Handle("/", http.FileServer(http.Dir("static")))
 
