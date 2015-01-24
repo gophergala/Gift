@@ -16,8 +16,8 @@ type GiftImageMap struct {
 
 var mapRoot = "https://maps.googleapis.com/maps/api/staticmap"
 
-func mapURL(centerX, centerY float64, width, height, zoom int) string {
-	return fmt.Sprintf("%s?center=%f,%f&zoom=%d&size=%dx%d&format=gif", mapRoot, centerX, centerY, zoom, width, height)
+func mapURL(centerX, centerY float64, width, height, zoom int, maptype string) string {
+	return fmt.Sprintf("%s?center=%f,%f&zoom=%d&size=%dx%d&format=gif&maptype=%s", mapRoot, centerX, centerY, zoom, width, height, maptype)
 }
 
 func (g *GiftImageMap) Geo(lat, long, heading float64) {
@@ -28,7 +28,7 @@ func (g *GiftImageMap) Geo(lat, long, heading float64) {
 		defer close(g.httpImages)
 
 		for i := 1; i < 6; i++ {
-			url := mapURL(lat, long, g.width, g.height, i*3)
+			url := mapURL(lat, long, g.width, g.height, i*3, "roadmap")
 			resp, err := http.Get(url)
 			if err != nil {
 				log.Printf("Error requesting map: %d: %+v\n", i, err)

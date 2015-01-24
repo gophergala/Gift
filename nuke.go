@@ -76,25 +76,34 @@ func (g *GiftImageNuke) Geo(lat, long, heading float64) {
 	go func() {
 		defer close(g.httpImages)
 
-		embedGif("nuke/nasr.gif", g.httpImages)
+		measure(func() {
+			embedGif("nuke/nasr.gif", g.httpImages)
+		}, "rocket launch image")
 
 		var img image.Image
-		for i := 1; i < 7; i++ {
-			url := mapURL(lat, long, g.width, g.height, i*3)
-			resp, err := http.Get(url)
-			if err != nil {
-				log.Printf("Error requesting map: %d: %+v\n", i, err)
-				continue
+		measure(func() {
+			for i := 1; i < 7; i++ {
+				maptype := "roadmap"
+				if i > 4 {
+					maptype = "satellite"
+				}
+
+				url := mapURL(lat, long, g.width, g.height, i*3, maptype)
+				resp, err := http.Get(url)
+				if err != nil {
+					log.Printf("Error requesting map: %d: %+v\n", i, err)
+					continue
+				}
+				// Reuse our image we declared outside this loop so we can
+				// overlay on top of this last frame
+				img, err = gif.Decode(resp.Body)
+				if err != nil {
+					log.Printf("Error decoding map: %+v", err)
+					continue
+				}
+				g.httpImages <- GiftImage{img: img.(*image.Paletted), frameTimeMS: 100}
 			}
-			// Reuse our image we declared outside this loop so we can
-			// overlay on top of this last frame
-			img, err = gif.Decode(resp.Body)
-			if err != nil {
-				log.Printf("Error decoding map: %+v", err)
-				continue
-			}
-			g.httpImages <- GiftImage{img: img.(*image.Paletted), frameTimeMS: 100}
-		}
+		}, "google maps queries")
 
 		measure(func() {
 			overlayGif("nuke/explosion.gif", img.Bounds(), g.httpImages)
