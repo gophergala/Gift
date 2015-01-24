@@ -1,8 +1,6 @@
 package gift
 
 import (
-	"github.com/oschwald/geoip2-golang"
-
 	"fmt"
 	"image"
 	"image/gif"
@@ -11,7 +9,7 @@ import (
 )
 
 type GiftImageMap struct {
-	city          *geoip2.City
+	lat, long     float64
 	width, height int
 	httpImages    chan *image.Paletted
 }
@@ -22,13 +20,14 @@ func mapURL(centerX, centerY float64, width, height, zoom int) string {
 	return fmt.Sprintf("%s?center=%f,%f&zoom=%d&size=%dx%d&format=gif", mapRoot, centerX, centerY, zoom, width, height)
 }
 
-func (g *GiftImageMap) Geo(record *geoip2.City) {
-	g.city = record
+func (g *GiftImageMap) Geo(lat, long, heading float64) {
+	g.lat = lat
+	g.long = long
 
 	go func() {
 
 		for i := 0; i < 8; i++ {
-			url := mapURL(record.Location.Latitude, record.Location.Longitude, g.width, g.height, i*3)
+			url := mapURL(lat, long, g.width, g.height, i*3)
 			resp, err := http.Get(url)
 			if err != nil {
 				log.Printf("Error requesting map: %d: %+v\n", i, err)
@@ -46,6 +45,7 @@ func (g *GiftImageMap) Geo(record *geoip2.City) {
 }
 
 func (g *GiftImageMap) Pipe(images chan *image.Paletted) {
+	log.Printf("About to send map")
 	for pm := range g.httpImages {
 		images <- pm
 	}

@@ -3,9 +3,34 @@ package main
 import (
 	"github.com/gophergala/Gift"
 
+	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 )
+
+func storeGeoInCookies(w http.ResponseWriter, r *http.Request) {
+	var body string
+	if b, err := ioutil.ReadAll(r.Body); err == nil {
+		body = string(b)
+	}
+
+	u, err := url.Parse("?" + body)
+	if err != nil {
+		log.Printf("Error parsing setgeo body: %+v", err)
+	}
+	values := u.Query()
+
+	cookie := http.Cookie{Name: "latitude", Value: values.Get("latitude"), Path: "/"}
+	http.SetCookie(w, &cookie)
+	cookie = http.Cookie{Name: "longitude", Value: values.Get("longitude"), Path: "/"}
+	http.SetCookie(w, &cookie)
+	cookie = http.Cookie{Name: "heading", Value: values.Get("heading"), Path: "/"}
+	http.SetCookie(w, &cookie)
+
+	log.Printf("Setting geo cookies to: [%s, %s] @ %s", values.Get("latitude"), values.Get("longitude"), values.Get("heading"))
+
+}
 
 func main() {
 	log.Printf("Starting GIFT server")
@@ -14,6 +39,8 @@ func main() {
 
 	http.HandleFunc("/counter.gif", counterGiftServer.Handler)
 	http.HandleFunc("/map.gif", mapGiftServer.Handler)
+	http.HandleFunc("/setgeo", storeGeoInCookies)
+	http.Handle("/", http.FileServer(http.Dir("static")))
 
 	http.ListenAndServe(":8080", nil)
 }

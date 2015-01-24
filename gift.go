@@ -9,7 +9,7 @@ import (
 
 type GiftImageSource interface {
 	Setup(width, height int)
-	Geo(record *geoip2.City)
+	Geo(lat, long, heading float64)
 	Pipe(images chan *image.Paletted)
 }
 

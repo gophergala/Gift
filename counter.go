@@ -3,7 +3,6 @@ package gift
 import (
 	"code.google.com/p/freetype-go/freetype"
 	"code.google.com/p/freetype-go/freetype/truetype"
-	"github.com/oschwald/geoip2-golang"
 
 	"fmt"
 	"image"
@@ -16,12 +15,10 @@ import (
 type GiftImageCounter struct {
 	font          *truetype.Font
 	c             *freetype.Context
-	city          *geoip2.City
 	width, height int
 }
 
-func (g *GiftImageCounter) Geo(record *geoip2.City) {
-	g.city = record
+func (g *GiftImageCounter) Geo(lat, long, heading float64) {
 }
 
 func (g *GiftImageCounter) Pipe(images chan *image.Paletted) {
