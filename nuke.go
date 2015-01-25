@@ -103,11 +103,13 @@ func (g *ImageNuke) Geo(lat, long, heading float64) {
 	g.lat = lat
 	g.long = long
 
+	bounds := image.Rect(0, 0, g.width, g.height)
+
 	go func() {
 		defer close(g.httpImages)
 
 		measure(func() {
-			overlayGif("nuke/nasr.gif", image.Rect(0, 0, g.width, g.height), g.httpImages)
+			overlayGif("nuke/nasr.gif", bounds, g.httpImages)
 		}, "rocket launch image")
 
 		strings := []string{
@@ -120,7 +122,6 @@ func (g *ImageNuke) Geo(lat, long, heading float64) {
 			"",
 		}
 
-		var img image.Image
 		measure(func() {
 			for i := 1; i < 7; i++ {
 				maptype := "roadmap"
@@ -128,14 +129,14 @@ func (g *ImageNuke) Geo(lat, long, heading float64) {
 					maptype = "satellite"
 				}
 
-				url := mapURL(lat, long, g.width, g.height, i*3, maptype)
+				url := mapURL(lat, long, g.width, g.height, i*3, maptype, g.MapKey)
 				resp, err := http.Get(url)
 				if err != nil {
 					log.Printf("Error requesting map: %d: %+v\n", i, err)
 					continue
 				}
 
-				img, err = gif.Decode(resp.Body)
+				img, err := gif.Decode(resp.Body)
 				if err != nil {
 					log.Printf("Error decoding map: %+v", err)
 					continue
@@ -170,7 +171,7 @@ func (g *ImageNuke) Geo(lat, long, heading float64) {
 				dx, dy := float64(delta.X)/dlen, float64(delta.Y)/dlen
 
 				crosshairSteps := 20
-				timeStep := float64(10)
+				timeStep := float64(4)
 				for j := 0; j < crosshairSteps; j++ {
 
 					t := (float64(j+1) / float64(crosshairSteps)) * dlen
@@ -189,13 +190,13 @@ func (g *ImageNuke) Geo(lat, long, heading float64) {
 		}, "google maps queries")
 
 		measure(func() {
-			overlayGif("nuke/explosion.gif", img.Bounds(), g.httpImages)
+			overlayGif("nuke/explosion.gif", bounds, g.httpImages)
 		}, "nuke overlay")
 
-		black := image.NewPaletted(img.Bounds(), palette.Plan9)
-		draw.Src.Draw(black, img.Bounds(), image.Black, image.Pt(0, 0))
+		black := image.NewPaletted(bounds, palette.Plan9)
+		draw.Src.Draw(black, bounds, image.Black, image.Pt(0, 0))
 
-		g.httpImages <- giftImage{img: black, frameTimeMS: 200}
+		g.httpImages <- giftImage{img: black, frameTimeMS: 200, disposalFlags: disposalLeave}
 	}()
 }
 
