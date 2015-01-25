@@ -14,13 +14,11 @@ import (
 	"math"
 	"math/rand"
 	"net/http"
-	"os"
-	"time"
 )
 
-// ImageNuke loads your geo location(or other provided position) and
+// ImageLove loads your geo location(or other provided position) and
 // drops a nuke on it
-type ImageNuke struct {
+type ImageLove struct {
 	MapKey, StreetViewKey string
 
 	font          *truetype.Font
@@ -30,67 +28,7 @@ type ImageNuke struct {
 	httpImages    chan giftImage
 }
 
-func measure(fun func(), desc string) {
-	start := time.Now()
-	fun()
-	end := time.Now()
-	log.Printf("%s took: %+v", desc, end.Sub(start))
-}
-
-func overlayGif(path string, bounds image.Rectangle, images chan giftImage) error {
-	return embedGif(path, bounds, image.Pt(0, 0), disposalRestoreBg, images)
-}
-
-func embedGif(path string, bounds image.Rectangle, offset image.Point, disposalFlags uint8, images chan giftImage) error {
-	gifFile, err := os.Open(path)
-	if err != nil {
-		log.Printf("Unable to open gif: %s", path)
-		return err
-	}
-	defer gifFile.Close()
-	frames, err := gif.DecodeAll(gifFile)
-	if err != nil {
-		log.Printf("Unable to decode gif: %s", path)
-		return err
-	}
-
-	for i, frame := range frames.Image {
-
-		parentWidth := bounds.Dx()
-		parentHeight := bounds.Dy()
-		childWidth := frame.Bounds().Dx()
-		childHeight := frame.Bounds().Dy()
-
-		offsetPt := image.Pt(parentWidth/2-childWidth/2, parentHeight/2-childHeight/2)
-
-		images <- giftImage{img: frame, frameTimeMS: frames.Delay[i], disposalFlags: disposalRestorePrev, offset: offsetPt}
-	}
-	return nil
-}
-
-func embedFrame(path string, bounds image.Rectangle, offset image.Point, disposalFlags uint8, frameTimeMS int, images chan giftImage) error {
-	gifFile, err := os.Open(path)
-	if err != nil {
-		log.Printf("Unable to open gif: %s", path)
-		return err
-	}
-	defer gifFile.Close()
-	frame, err := gif.Decode(gifFile)
-	if err != nil {
-		log.Printf("Unable to decode gif: %s", path)
-		return err
-	}
-
-	center := image.Pt(frame.Bounds().Dx()/2, frame.Bounds().Dy()/2)
-	offsetPt := image.Pt(0, 0)
-	offsetPt.X += offset.X - center.X
-	offsetPt.Y += offset.Y - center.Y
-
-	images <- giftImage{img: frame.(*image.Paletted), frameTimeMS: frameTimeMS, disposalFlags: disposalRestorePrev, offset: offsetPt}
-	return nil
-}
-
-func (g *ImageNuke) drawString(img *image.Paletted, x, y int, text string) {
+func (g *ImageLove) drawString(img *image.Paletted, x, y int, text string) {
 	g.c.SetDst(img)
 	pt := freetype.Pt(x, y)
 	g.c.DrawString(text, pt)
@@ -99,7 +37,7 @@ func (g *ImageNuke) drawString(img *image.Paletted, x, y int, text string) {
 // Geo takes our lat/long and starts streaming some gif images, overlays some
 // text on top of the map, along with the targeting reticle, and then plays
 // the explosion animation over the final position
-func (g *ImageNuke) Geo(lat, long, heading float64) {
+func (g *ImageLove) Geo(lat, long, heading float64) {
 	g.lat = lat
 	g.long = long
 
@@ -201,7 +139,7 @@ func (g *ImageNuke) Geo(lat, long, heading float64) {
 }
 
 // Pipe is a simple pipe between our internal channel, and the channel the server provides
-func (g *ImageNuke) Pipe(images chan giftImage) {
+func (g *ImageLove) Pipe(images chan giftImage) {
 	log.Printf("About to send nuke map")
 	for pm := range g.httpImages {
 		images <- pm
@@ -210,7 +148,7 @@ func (g *ImageNuke) Pipe(images chan giftImage) {
 }
 
 // Setup initializes our width and height and loads the font
-func (g *ImageNuke) Setup(width, height int) {
+func (g *ImageLove) Setup(width, height int) {
 	g.width = width
 	g.height = height
 
