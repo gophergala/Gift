@@ -144,7 +144,7 @@ func (g *ImageLove) Geo(lat, long, heading float64) {
 
 // Pipe is a simple pipe between our internal channel, and the channel the server provides
 func (g *ImageLove) Pipe(images chan giftImage) {
-	log.Printf("About to send nuke map")
+	log.Printf("About to send love map")
 	for pm := range g.httpImages {
 		images <- pm
 	}
