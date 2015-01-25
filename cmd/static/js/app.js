@@ -7,8 +7,7 @@ var apple = {coords:{latitude:37.331411, longitude:-122.030315}};
 */
 
 function getLocation(div) {
-  var out = document.getElementById("output");
-  out.innerHTML = "<b>Please wait while we load your location info: <img src='/ajax-loader.gif'/></b>";
+  $("#output").html("<b>Please wait while we load your location info: <i class=\"fa fa-refresh fa-spin\"></i></b>");
   if (navigator.geolocation) {
     var options = {enableHighAccuracy: true};
     navigator.geolocation.getCurrentPosition(setPosition, errorHandler, options);
@@ -18,14 +17,16 @@ function getLocation(div) {
 }
 function setPosition(position) {
   var out = document.getElementById("watch_results");
-  out.innerHTML = "Latitude: " + position.coords.latitude + 
+  $("#watch_results").html("Latitude: " + position.coords.latitude +
     "<br>Longitude: " + position.coords.longitude +
-    "<br>Heading: " + position.coords.heading; 
+    "<br>Heading: " + position.coords.heading);
 
-  var r = new XMLHttpRequest(); 
+  $("#output").html('');
+
+  var r = new XMLHttpRequest();
   r.open("POST", "/setgeo", true);
   r.onreadystatechange = function () {
-    if (r.readyState != 4 || r.status != 200) return; 
+    if (r.readyState != 4 || r.status != 200) return;
     window.location = "#watch";
   };
 
@@ -38,7 +39,7 @@ function setPosition(position) {
 function errorHandler(err) {
   var out = document.getElementById("error");
   out.innerHTML = "Error loading your position information";
-}  
+}
 
 $(".gift").click(function(event) {
   $(this).attr('href', '#gift');
