@@ -13,3 +13,14 @@ containers:
     ports:
       - name: www
         containerPort: 80
+    volumeMounts:
+      - name: data
+        mountPath: /mnt/data
+      - name: tmp
+        mountPath: /host_tmp
+volumes:
+  - name: data
+  - name: tmp
+    source:
+      hostDir:
+        path: /tmp
