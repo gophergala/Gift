@@ -33,9 +33,9 @@ const (
 // Frame disposal flags.
 const (
 	disposalNone        = 0
-	disposalLeave       = (1 << 2)
-	disposalRestoreBg   = (1 << 3)
-	disposalRestorePrev = (1 << 4)
+	disposalLeave       = 1
+	disposalRestoreBg   = 2
+	disposalRestorePrev = 3
 )
 
 var log2Lookup = [8]int{2, 4, 8, 16, 32, 64, 128, 256}
@@ -216,7 +216,7 @@ func (e *encoder) writeImageBlock(pm *image.Paletted, delay int, disposalFlags u
 		if transparentIndex != -1 {
 			flags |= 0x01
 		}
-		flags |= disposalFlags
+		flags |= (disposalFlags << 2)
 		e.buf[3] = flags
 		writeUint16(e.buf[4:6], uint16(delay)) // Delay Time (1/100ths of a second)
 
