@@ -51,10 +51,12 @@ func main() {
 		mapGiftServer.Handler(w, r)
 	})
 	http.HandleFunc("/war.gif", func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("WAR")
 		warGiftServer := gift.NewGiftServer(480, 360, &gift.ImageWar{MapKey: staticMapKey, StreetViewKey: streetViewKey})
 		warGiftServer.Handler(w, r)
 	})
 	http.HandleFunc("/love.gif", func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("LOVE")
 		loveGiftServer := gift.NewGiftServer(480, 360, &gift.ImageLove{MapKey: staticMapKey, StreetViewKey: streetViewKey})
 		loveGiftServer.Handler(w, r)
 	})
