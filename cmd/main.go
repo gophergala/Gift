@@ -47,7 +47,7 @@ func main() {
 
 	http.HandleFunc("/counter.gif", counterGiftServer.Handler)
 	http.HandleFunc("/map.gif", mapGiftServer.Handler)
-	http.HandleFunc("/nuke.gif", nukeGiftServer.Handler)
+	http.HandleFunc("/war.gif", nukeGiftServer.Handler)
 	http.HandleFunc("/setgeo", storeGeoInCookies)
 	http.Handle("/", http.FileServer(http.Dir("static")))
 
