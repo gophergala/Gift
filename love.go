@@ -138,10 +138,7 @@ func (g *ImageLove) Geo(lat, long, heading float64) {
 			overlayGif("love/explosion.gif", bounds, g.httpImages)
 		}, "heart overlay")
 
-		fullscreen = image.NewPaletted(bounds, palette.Plan9)
-		draw.Src.Draw(fullscreen, bounds, image.NewUniform(color.RGBA{255, 0, 127, 255}), image.Pt(0, 0))
-
-		g.httpImages <- giftImage{img: fullscreen, frameTimeMS: 200, disposalFlags: disposalLeave}
+		//embedFrame("love/heart_complete.gif", bounds, image.Pt(0, 0), disposalNone, 200, g.httpImages)
 	}()
 }
 
