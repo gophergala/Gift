@@ -19,7 +19,13 @@ type ImageMap struct {
 var mapRoot = "https://maps.googleapis.com/maps/api/staticmap"
 
 func mapURL(centerX, centerY float64, width, height, zoom int, maptype string, key string) string {
-	return fmt.Sprintf("%s?center=%f,%f&zoom=%d&size=%dx%d&format=gif&maptype=%s&key=%s", mapRoot, centerX, centerY, zoom, width, height, maptype, key)
+	var url string
+	if key != "" {
+		url = fmt.Sprintf("%s?center=%f,%f&zoom=%d&size=%dx%d&format=gif&maptype=%s&key=%s", mapRoot, centerX, centerY, zoom, width, height, maptype, key)
+	} else {
+		url = fmt.Sprintf("%s?center=%f,%f&zoom=%d&size=%dx%d&format=gif&maptype=%s&", mapRoot, centerX, centerY, zoom, width, height, maptype)
+	}
+	return url
 }
 
 // Geo spawns a goroutine to load our map images and feed them to our internal image channel
