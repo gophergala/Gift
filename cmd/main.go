@@ -41,15 +41,23 @@ func main() {
 
 	rand.Seed(time.Now().UTC().UnixNano())
 	log.Printf("Starting GIFT server")
-	counterGiftServer := gift.NewGiftServer(640, 480, &gift.ImageCounter{})
-	mapGiftServer := gift.NewGiftServer(640, 480, &gift.ImageMap{MapKey: staticMapKey, StreetViewKey: streetViewKey})
-	warGiftServer := gift.NewGiftServer(480, 360, &gift.ImageWar{MapKey: staticMapKey, StreetViewKey: streetViewKey})
-	loveGiftServer := gift.NewGiftServer(480, 360, &gift.ImageLove{MapKey: staticMapKey, StreetViewKey: streetViewKey})
 
-	http.HandleFunc("/counter.gif", counterGiftServer.Handler)
-	http.HandleFunc("/map.gif", mapGiftServer.Handler)
-	http.HandleFunc("/war.gif", warGiftServer.Handler)
-	http.HandleFunc("/love.gif", loveGiftServer.Handler)
+	http.HandleFunc("/counter.gif", func(w http.ResponseWriter, r *http.Request) {
+		counterGiftServer := gift.NewGiftServer(640, 480, &gift.ImageCounter{})
+		counterGiftServer.Handler(w, r)
+	})
+	http.HandleFunc("/map.gif", func(w http.ResponseWriter, r *http.Request) {
+		mapGiftServer := gift.NewGiftServer(640, 480, &gift.ImageMap{MapKey: staticMapKey, StreetViewKey: streetViewKey})
+		mapGiftServer.Handler(w, r)
+	})
+	http.HandleFunc("/war.gif", func(w http.ResponseWriter, r *http.Request) {
+		warGiftServer := gift.NewGiftServer(480, 360, &gift.ImageWar{MapKey: staticMapKey, StreetViewKey: streetViewKey})
+		warGiftServer.Handler(w, r)
+	})
+	http.HandleFunc("/love.gif", func(w http.ResponseWriter, r *http.Request) {
+		loveGiftServer := gift.NewGiftServer(480, 360, &gift.ImageLove{MapKey: staticMapKey, StreetViewKey: streetViewKey})
+		loveGiftServer.Handler(w, r)
+	})
 	http.HandleFunc("/setgeo", storeGeoInCookies)
 	http.Handle("/", http.FileServer(http.Dir("static")))
 
