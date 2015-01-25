@@ -17,7 +17,7 @@ import (
 )
 
 // ImageLove loads your geo location(or other provided position) and
-// drops a nuke on it
+// gets cupid to fire a arrow at it
 type ImageLove struct {
 	MapKey, StreetViewKey string
 
@@ -28,10 +28,11 @@ type ImageLove struct {
 	httpImages    chan giftImage
 }
 
-func (g *ImageLove) drawString(img *image.Paletted, x, y int, text string) {
+func (g *ImageLove) drawString(img *image.Paletted, x, y int, text string) int {
 	g.c.SetDst(img)
 	pt := freetype.Pt(x, y)
-	g.c.DrawString(text, pt)
+	ptAfter, _ := g.c.DrawString(text, pt)
+	return int((ptAfter.X >> 8) - (pt.X >> 8))
 }
 
 // Geo takes our lat/long and starts streaming some gif images, overlays some
@@ -46,21 +47,42 @@ func (g *ImageLove) Geo(lat, long, heading float64) {
 	go func() {
 		defer close(g.httpImages)
 
+		fullscreen := image.NewPaletted(bounds, palette.Plan9)
+		draw.Src.Draw(fullscreen, bounds, image.White, image.Pt(0, 0))
+
+		g.httpImages <- giftImage{img: fullscreen, frameTimeMS: 0, disposalFlags: disposalNone}
+
 		measure(func() {
-			overlayGif("nuke/nasr.gif", bounds, g.httpImages)
-		}, "rocket launch image")
+			overlayGif("love/cupidarrow.gif", bounds, g.httpImages)
+		}, "cupid arrow image")
 
 		strings := []string{
 			"",
-			"LAUNCH DETECTED",
-			"",
-			"ACQUIRING TARGET",
-			"",
-			"TARGET ACQUIRED",
-			"",
+			"YOU",
+			"ARE",
+			"LOVED",
+			"SO",
+			"MUCH",
+			"XOXOXO",
 		}
 
 		measure(func() {
+			startSide := rand.Intn(4)
+			var startPt = image.Pt(0, 0)
+			switch startSide {
+			case 0: // Random Y coord, X = 0
+				startPt.X = 0
+				startPt.Y = rand.Intn(bounds.Dy())
+			case 1: // Random Y coord, X = right side
+				startPt.X = bounds.Dx()
+				startPt.Y = rand.Intn(bounds.Dy())
+			case 2: // Random X coord, Y = 0
+				startPt.X = rand.Intn(bounds.Dx())
+				startPt.Y = 0
+			case 3:
+				startPt.X = rand.Intn(bounds.Dx())
+				startPt.Y = bounds.Dy()
+			}
 			for i := 1; i < 7; i++ {
 				maptype := "roadmap"
 				if i > 4 {
@@ -79,31 +101,16 @@ func (g *ImageLove) Geo(lat, long, heading float64) {
 					log.Printf("Error decoding map: %+v", err)
 					continue
 				}
-				g.httpImages <- giftImage{img: img.(*image.Paletted), frameTimeMS: 10}
+				g.httpImages <- giftImage{img: img.(*image.Paletted), frameTimeMS: 0}
 
 				img = image.NewPaletted(img.Bounds(), palette.Plan9)
 				img.(*image.Paletted).Palette[0] = color.RGBA{0, 0, 0, 0}
 				center := image.Pt(img.Bounds().Dx()/2, img.Bounds().Dy()/2)
-				g.drawString(img.(*image.Paletted), 10, 48, strings[i])
+				width := g.drawString(img.(*image.Paletted), 0, 48, strings[i])
 
-				g.httpImages <- giftImage{img: img.(*image.Paletted), frameTimeMS: 10}
+				offset := image.Pt(bounds.Dx()/2-width/2, 0)
+				g.httpImages <- giftImage{img: img.(*image.Paletted), frameTimeMS: 10, offset: offset}
 
-				startSide := rand.Intn(4)
-				var startPt = image.Pt(0, 0)
-				switch startSide {
-				case 0: // Random Y coord, X = 0
-					startPt.X = 0
-					startPt.Y = rand.Intn(img.Bounds().Dy())
-				case 1: // Random Y coord, X = right side
-					startPt.X = img.Bounds().Dx()
-					startPt.Y = rand.Intn(img.Bounds().Dy())
-				case 2: // Random X coord, Y = 0
-					startPt.X = rand.Intn(img.Bounds().Dx())
-					startPt.Y = 0
-				case 3:
-					startPt.X = rand.Intn(img.Bounds().Dx())
-					startPt.Y = img.Bounds().Dy()
-				}
 				delta := center.Sub(startPt)
 				dlen := math.Sqrt(float64(delta.X*delta.X + delta.Y*delta.Y))
 				dx, dy := float64(delta.X)/dlen, float64(delta.Y)/dlen
@@ -118,9 +125,9 @@ func (g *ImageLove) Geo(lat, long, heading float64) {
 
 					ts := int(timeStep)
 					if j == crosshairSteps-1 {
-						embedFrame("nuke/crosshair.gif", img.Bounds(), pt, disposalRestoreBg, ts+100, g.httpImages)
+						embedFrame("love/heart.gif", img.Bounds(), pt, disposalRestoreBg, ts+20, g.httpImages)
 					} else {
-						embedFrame("nuke/crosshair_small.gif", img.Bounds(), pt, disposalRestoreBg, ts, g.httpImages)
+						embedFrame("love/heart_small.gif", img.Bounds(), pt, disposalRestoreBg, ts, g.httpImages)
 
 					}
 				}
@@ -128,13 +135,13 @@ func (g *ImageLove) Geo(lat, long, heading float64) {
 		}, "google maps queries")
 
 		measure(func() {
-			overlayGif("nuke/explosion.gif", bounds, g.httpImages)
-		}, "nuke overlay")
+			overlayGif("love/explosion.gif", bounds, g.httpImages)
+		}, "heart overlay")
 
-		black := image.NewPaletted(bounds, palette.Plan9)
-		draw.Src.Draw(black, bounds, image.Black, image.Pt(0, 0))
+		fullscreen = image.NewPaletted(bounds, palette.Plan9)
+		draw.Src.Draw(fullscreen, bounds, image.NewUniform(color.RGBA{255, 0, 127, 255}), image.Pt(0, 0))
 
-		g.httpImages <- giftImage{img: black, frameTimeMS: 200, disposalFlags: disposalLeave}
+		g.httpImages <- giftImage{img: fullscreen, frameTimeMS: 200, disposalFlags: disposalLeave}
 	}()
 }
 
