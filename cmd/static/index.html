@@ -43,6 +43,7 @@
           <a class="navbar-brand page-scroll" href="#page-top">
             <i class="fa fa-play-circle"></i>  <span class="light">GIFT</span>
           </a>
+
         </div>
 
         <!-- Collect the nav links, forms, and other content for toggling -->
@@ -53,6 +54,16 @@
               <a href="#page-top"></a>
             </li>
             <li>
+              <a href="http://gophergala.com">
+                A&nbsp;GopherGala&nbsp;submission
+              </a>
+            </li>
+            <li>
+              <a href="http://challengepost.com/software/gift">
+                Challenge Post
+              </a>
+            </li>
+            <li>
               <a class="page-scroll" href="#about">About</a>
             </li>
             <li>
@@ -61,6 +72,10 @@
             <li>
               <a class="page-scroll" href="#watch">Watch</a>
             </li>
+            <li>
+              <a class="page-scroll" href="#credits">Credits</a>
+            </li>
+
           </ul>
         </div>
         <!-- /.navbar-collapse -->
@@ -90,8 +105,16 @@
       <div class="row">
         <div class="col-lg-8 col-lg-offset-2">
           <h2>About Gift</h2>
-          <p>I'll fill this out about how I made these images</p>
-          <p>But for now just hit the button below</p>
+          <div class="text-left">
+          <p>The gift server makes use of some nice go features in order to serve these images.</p>
+          <p>When the connection first comes into the http handler we setup our image source, and then try to pull various Geographic information from the connection.  We check for location cookies, then ?latitude=123.5&amp;longitude=-25 get params.  If none of that data is available, we fall back to a Maxmind GeoIPLite database.</p>
+          <p>A goroutine is spawned, handing that information off to the image source.  We then create a channel that recieves giftImage structs.  This struct has an image, and all the parameters needed for adjust how we render our gif.</p>
+          <p>Next up, we spawn go routine to the image source pipe, and provide the channel above.</p>
+          <p>While those two goroutines are busy downloading images, splicing in other gifs, etc they send giftImages on the channel provided.</p>
+          <p>Finally we call EncodeAll which is a modified version of the go standard library gif encoder, but we pass it the channel above, and the http writer.</p>
+          <p>This writer ranges over the giftImage channel, and encodes and sends off the frames as soon as they appear on the channel.</p>
+          <p>The end result is these images have started rendering on the client side while the server is running out and grabbing the data for future frames.</p>
+          </div>
           <a href="#geo" class="btn btn-circle page-scroll">
             <i class="fa fa-angle-double-down animated"></i>
           </a>
@@ -110,6 +133,20 @@
           <p>If you don't want that, feel free to use one of the samples below.</p>
           <p id="output"></p>
           <p><a href="#watch" onclick="setPosition(nwt); return false">Middle of Nowhere</a></p>
+          <p>
+            Custom Latitude/Longitude
+            <form href="#watch" class="form-inline" id="custom-loc">
+              <div class="form-group">
+                <label class="sr-only" for="latitude">Latitude</label>
+                <input type="text" class="form-control" id="latitude" placeholder="43.9785627"/>
+              </div>
+              <div class="form-group">
+                <label class="sr-only" for="longitude">Longitude</label>
+                <input type="Text" class="form-control" id="longitude" placeholder="15.3840578"/>
+              </div>
+              <button type="submit" class="btn btn-default">Set Location</button>
+            </form>
+          </p>
           <p><small> * depending on your definition of smart</small></p>
           <a href="#watch" class="btn btn-circle page-scroll">
             <i class="fa fa-angle-double-down animated"></i>
@@ -137,6 +174,17 @@
         </div>
         <div class="row">
           <span id="gift"></span>
+        </div>
+      </div>
+    </section>
+    <section id="credits" class="container content-section text-center">
+      <div class="row">
+        <div class="col-lg-8 col-lg-offset-2">
+          <h2>Credits</h2>
+          <h4><a href="http://golang.org">Golang</a></h4>
+          <h4><a href="https://code.google.com/p/freetype-go/">Go Freetype</a></h4>
+          <h4><a href="http://://github.com/oschwald/geoip2-golang">GeoIP2-Golang</a></h4>
+          <h4><a href="https://github.com/IronSummitMedia/startbootstrap-grayscale">Startbootstrap-Grayscale theme</a></h4>
         </div>
       </div>
     </section>

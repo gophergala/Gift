@@ -47,6 +47,12 @@ $(".gift").click(function(event) {
 });
 
 
+$("#custom-loc").submit(function() {
+   var loc = {coords:{latitude:$("#latitude").val(), longitude:$("#longitude").val()}};
+
+   setPosition(loc);
+   return false;
+});
 
 
 
