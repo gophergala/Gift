@@ -32,7 +32,7 @@ func (g *ImageCounter) Pipe(images chan giftImage) {
 		pt := freetype.Pt(g.width/2-100, g.height/2)
 		g.c.DrawString(fmt.Sprintf("Frame: %d", i), pt)
 
-		images <- giftImage{img: img, frameTimeMS: 100}
+		images <- giftImage{img: img, frameTimeMS: 100, disposalFlags: disposalRestorePrev}
 	}
 }
 

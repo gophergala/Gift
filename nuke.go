@@ -21,9 +21,10 @@ import (
 // ImageNuke loads your geo location(or other provided position) and
 // drops a nuke on it
 type ImageNuke struct {
-	font *truetype.Font
-	c    *freetype.Context
+	MapKey, StreetViewKey string
 
+	font          *truetype.Font
+	c             *freetype.Context
 	lat, long     float64
 	width, height int
 	httpImages    chan giftImage
